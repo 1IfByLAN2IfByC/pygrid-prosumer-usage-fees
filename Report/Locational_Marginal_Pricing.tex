@@ -1,0 +1,125 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{amsmath}
+
+\graphicspath{ {Assets/} }
+\begin{document}
+\title{Locational Marginal Pricing in Python}
+\author{Michael Lee}
+\maketitle
+
+\begin{abstract}
+here is the abstract 
+\end{abstract}
+
+\section{A Primer on Power Distribution}
+For the vast majority of people, the electricity flowing from their plugs simply works. Fewer even, have seen a power generation station or understand the mechanisms behind its generation and distribution. This is largely to be celebrated as a success of the sophisticated, centralized distribution networks operating across the USA. In the US, as in the vast majority of countries, large power generation stations create, supply, and balance the load demanded thousands of consumers, often times far out of sight of the cities. Thus, a brief look into how power is generated and distributed which underlies the model presented is deemed useful to the reader. 
+
+\subsection{Power Generation}
+HERE THE MECHANISM FOR GENERATING ELECTRICITY WILL BE DISCUSSED. 
+
+\begin{itemize}
+	\item how coal and gas fit in
+	\item what does phase mean and how does it play in
+	\item how do they balance loads
+	\item reserve capacity and dispatch
+\end{itemize}
+
+\subsection{Distribution Networks}
+HERE WE TALK ABOUT WHAT A BUS IS AND HOW LOADS/SOURCES/STORAGE PLAY IN
+\begin{itemize}
+	\item what is bus
+	\item how does power flow
+	\item what are the mechanical + electrical constraints
+	\item how does not having storage effect load balance
+\end{itemize}
+
+
+\subsection{The Role of Regulators in The Power Industry}
+
+
+\section{Locational Marginal Pricing}
+As a commodity electricity should obey the Law of One Price, where the price of a kWh is set by the intersection of aggregate demand and supply. Furthermore, since the ‘transporation’ of electricity is free, i.e. there marginal cost of moving an extra electron through a line is zero, the transportation costs-- excluding infrastructure capital costs-- are zero as well. Thus, in a perfectly competitive market, a single market clearing price exists, and the lowest-cost producer will supply on the 
+margin. \
+
+Due to a combination of physical limitations of the lines, safety limitations set by regulators and operators, and losses from the lines, geospatial price gradients exist-- a clear violation of the Law of One Price. For example, transmission lines can carry a fixed amount of power based on their size, which leads to congestion on the electron highway. These limitations of distribution channels allow for operators to charge different prices at different buses\footnote{Here it is useful to think of buses as market hubs or clearing houses}, a practice known as \emph{Locational Marginal Pricing} (LMP). In situations where transmission constraints prevent low-cost power from reaching all consumers, more expensive, localized power must be generated to meet those high demanding locations, hence creating a price differential.
+
+\subsection{A Example of LMP}
+Imagine a two-bus network (Figure 1) where each bus has a generator capable of producing 1000 MW. The demand for power is uneven (100 MWh vs 800 MWh), as is the marginal cost of the two generation stations ($\frac{\$20}{MWh}$ vs $\frac{\$40}{MWh}$. A transmission line runs between the two. 
+
+\begin{figure}[h]
+	\includegraphics{twoBus.jpg}
+	\caption{A simple two-bus network}
+\end{figure}
+
+If there was no limit on the capacity of the line, the low-cost generator at \emph{Bus 1} could supply all the power demanded in the system and the market clearing price would be $\frac{\$20}{MWh}$. However, if a limit is placed on the line connecting them, as shown in Figure 1, the generator at \emph{Bus 1} will only supply $100 + 500$MWh, while the generator at \emph{Bus 2} will be the marginal producer, and produce 300MWh at a price of $\frac{\$40}{MWh}$. 
+
+\subsection{Implications of LMP on Consumers and Producers}
+From an economic standpoint, LMP is beneficial to both consumers and producers as it more accurately reflects the price of the good in question. For producers, they are able to geographically price discriminate via these market signals, which encourages them to generate more electricity to meet consumer load, increasing reliability. Furthermore, producers can plan future generating capacity near markets that persistently demand higher prices, which in the long-run will lower prices for consumers.
+\begin{figure}[ht]
+	\centering
+	\includegraphics[scale=.65]{MISO_energyContour.png}
+	\caption{LMC Pricing from Midcontinet ISO}
+\end{figure}
+
+For consumers, LMP affords them the opportunity to temper demand based on their nodal price, saving them money and therefore utility. Furthermore, the price signals they send server to stimulate supply, much in the way that the ridesharing company Uber raises fares to encourage more drivers to enter the market.
+
+\section{A Computational Grid Model}
+A computational model of a (admittedly simplified) grid is created to simulate the effect of \textbf{geographically-distributed, transmission-constrained load balancing}. Two neighborhoods are modeled, with each home having a stochastic, time-varying demand. Lines are created between each home in serial, and the last homes on the 'block' are connected to one of three different generators. Each line is prescribed a maximum power flow and a per-unit-length loss. To illustrate LMP, one neighborhood has access to a large generator, while the other has access to a medium sized generator and a smaller generator. \
+
+Behind the scenes, the optimization routine creates and solves an admittance matrix for the optimal power flow. The admittance matrix is a \emph{NxN} matrix where N is the number of buses, where each element of the matrix is the equivalent admittance\footnote{Electrical admittance is the inverse of impedance-- the complex-valued resistance} of at each load. For a $3x3$ matrix, the admittance matrix is shown below:
+
+\[ Y = 
+\begin{bmatrix}
+	 y_{11} + y_{12} + y_{13} &  -y_{12} & -y_{13} \\
+	 -y_{12} & y_{22} + y_{12} + y_{23} & -y_{23} \\ 
+	 -y_{13} & -y_{23} & y_{33} + y_{13} + y_{23}
+\end{bmatrix}
+\]
+
+The model assumes that demand is perfectly inelastic, i.e. that all power demanded must be met at every time instance\footnote{For consumers this is a valid assumption since many operate without real-time pricing information}. The power supplied by each generator is set by minimizing the marginal cost subject to the constraint that supply equals demand.
+
+\section{Results}
+Early runs of the model in fact produced an outcome where a single market clearing price existed! This is most likely due to the simplicity of the grid simulated, where the capacities of transmission lines were generous and only two neighborhoods were created. However, the marginal producer (shown as a dot at \emph{(2,10)} fired on when demand peaked, increasing the clearing price. This behavior is in line with expectations, and is indicative of the model's ability to correctly simulate optimal power flow. 
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[scale=.35]{networkGrid.png}
+	\caption{The simulated power grid}
+\end{figure}
+
+In the \emph{Figure 3}, \textbf{blue circles} are net consumers \textbf{red net producers}, \textbf{line thickness} is representative of instantaneous power flow, and \textbf{(x,y) coordinates} the geographic location.
+
+\subsection{Finding the Grid Usage Fee for Distributed Solar}
+One of the most exciting advancements in power generation and transmission is the rise of affordable distributed storage and generation systems, namely solar energy. Homes having solar panels, and potentially storage cells, are able to (freely) generate their own power supply, and in some cases, sell it back on the grid. While this development has many implications with respect to climate change, it has unnerved some reliability councils. \
+
+Since the energy flux from the sun is intermittent throughout the day, as well as highly variable from day-to-day, prosumers\footnote{'Producer' and 'Consumer'} are not completely independent of the centralized grid. From a consumer's standpoint, this affords them the best of both worlds: they are able to generate their own power during times of peak demand (typically in the mid-to-late afternoon), and purchase power from the grid when they cannot generate enough power to meet their own demands. However, from a centralized producer's standpoint, this makes the power demand more variable, as it is subject to more weather-dependent outcomes. Additionally, the capital investments of \textbf{transmission lines are financed through usage-based fees}. When consumers demand less electricity by virtue of their in-situ generation, yet still demand the infrastructure, distribution networks are unable to recoup their current investment costs, and therefore unable to expand and maintain network infrastructure. 
+
+\subsubsection{Using the Model to Estimate Usage Fees}
+A method for estimating efficient network fees solar prosumers should pay is proposed using locational marginal pricing. The two neighborhood network described above are is modified such that one neighborhood is given solar panels with time-dependent and stochastic generation capabilities and associated storage units, while the other does not. The solar neighborhood is given access to a medium-scale, low-cost generator, as well as a small-expensive producer. The neighborhood without solar panels has access to a large-low cost generator. It is proposed that the monthly average LMP at the bus connecting the small generator to the solar neighborhood is representative of the network fees that solar prosumers should pay for by virtue of their demand for reserve capacity and retardation of network capitalization. 
+
+\begin{figure}[ht]
+	\centering
+	\includegraphics[scale=.35]{solarTime.png}
+	\caption{An example of a time-dependent solar generation}
+\end{figure}
+
+Thirty days of power distribution were simulated, each of which had five minute call intervals. As predicted, the solar-capable neighborhood demanded less power during the mid afternoon as they could generate in-situ, however, there was a steep rise in demand, and therefore price, starting around 1800 when their demand exceeded solar capacity. A snapshot of power demanded and supplied by the various market participants is shown in \emph{Figure 5}\footnote{\emph{Gen 3} is the swing producer in the model}.
+
+\begin{figure}[ht!]
+	\centering
+	\includegraphics[scale=.35]{powerQ.png}
+	\caption{Power quantities of the simulated market}
+\end{figure}
+
+By taking the monthly average of the price at \emph{Gen 3's bus}, we calculate a monthly usage fee of $.05P_{kWh}$
+
+\begin{figure}[ht!]
+	\centering
+	\includegraphics[scale=.35]{busPrice.png}
+	\caption{LMC for the two neighborhoods (purple: solar, green: w/out solar)}
+\end{figure}
+
+\newpage
+\section{Conclusions and future work}
+\end{document}
